@@ -27,8 +27,10 @@ El objetivo del proyecto es desarrollar una aplicación web que permita:
    ```bash
    git clone https://github.com/usuario/proyecto-hotel.git
 2. instala las dependencias del backend
+    ```bash
     cd backend
     npm install
-3. Instala las dependencias del fronend
+3. Instala las dependencias del frontend
+    ```bash
     cd frontend
     npm install
