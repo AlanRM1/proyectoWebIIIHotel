@@ -5,6 +5,11 @@ export const obtHabitaciones = async () => {
     return resultado;
 };
 
+export const obtHabitacion = async (id) => {
+  const [resultado] = await db.query('SELECT * FROM habitaciones WHERE id = ?', [id]);
+  return resultado[0];
+};
+
 export const insertaHabitacion = async (datos) => {
     const { numero, tipo, precio_base, estado } = datos;
     const [resultado] = await db.query(
