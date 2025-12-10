@@ -12,34 +12,35 @@ export const obtReservas = async () => {
 };
 
 export const insertaReserva = async (reserva) => {
-    const { cliente_id, tipo, fecha_inicio, fecha_fin } = reserva;
+  const { cliente_id, habitacion_id, fecha_inicio, fecha_fin } = reserva;
 
-    const [habitacionesLibres] = await db.query(`
-        SELECT h.id, h.precio_base
-        FROM habitaciones h
-        WHERE h.tipo = ? AND h.estado = 'activa'
-        AND h.id NOT IN (
-            SELECT habitacion_id FROM reservas
-            WHERE fecha_inicio <= ? AND fecha_fin >= ?
-        )
-        LIMIT 1
-    `, [tipo, fecha_fin, fecha_inicio]);
+  const [conflictos] = await db.query(`
+    SELECT id FROM reservas
+    WHERE habitacion_id = ?
+    AND NOT (fecha_fin <= ? OR fecha_inicio >= ?)
+  `, [habitacion_id, fecha_inicio, fecha_fin]);
 
-    if (habitacionesLibres.length === 0) {
-        throw new Error('No hay habitaciones disponibles en los días que escogiste');
-    }
+  if (conflictos.length > 0) {
+    throw new Error('La habitación ya está reservada en ese rango de fechas');
+  }
 
-    const habitacion = habitacionesLibres[0];
-    const noches = Math.ceil((new Date(fecha_fin) - new Date(fecha_inicio)) / (1000*60*60*24));
-    const monto_total = noches * habitacion.precio_base;
+  const [habitacionData] = await db.query(`SELECT precio_base FROM habitaciones WHERE id = ?`, [habitacion_id]);
+  if (habitacionData.length === 0) {
+    throw new Error('Habitación no encontrada o inactiva');
+  }
 
-    const [resultado] = await db.query(`
-        INSERT INTO reservas(habitacion_id, cliente_id, fecha_inicio, fecha_fin, monto_total)
-        VALUES (?,?,?,?,?)
-    `, [habitacion.id, cliente_id, fecha_inicio, fecha_fin, monto_total]);
+  const precio_base = habitacionData[0].precio_base;
+  const noches = Math.ceil((new Date(fecha_fin) - new Date(fecha_inicio)) / (1000*60*60*24));
+  const monto_total = noches * precio_base;
 
-    return { id: resultado.insertId, habitacion_id: habitacion.id, cliente_id, fecha_inicio, fecha_fin, monto_total };
+  const [resultado] = await db.query(`
+    INSERT INTO reservas(habitacion_id, cliente_id, fecha_inicio, fecha_fin, monto_total)
+    VALUES (?,?,?,?,?)
+  `, [habitacion_id, cliente_id, fecha_inicio, fecha_fin, monto_total]);
+
+  return { id: resultado.insertId, habitacion_id, cliente_id, fecha_inicio, fecha_fin, monto_total };
 };
+
 
 export const actualizaReserva = async (id, datos) => {
     const { fecha_inicio, fecha_fin } = datos;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getReservas, crearReserva, getHabitaciones, getClientes } from '../api/api'
 import Loading from '../components/Loading'
+import { API_BASE } from '../config'
 
 export default function Reservas(){
   const [reservas, setReservas] = useState([])
@@ -55,9 +56,21 @@ export default function Reservas(){
   }
 
   const onDelete = async (id) => {
-    if(!confirm('Eliminar reserva?')) return
-    try { await fetch(`/api/reservas/${id}`, { method: 'DELETE' }); fetchAll() } catch(e){ alert('Error eliminando') }
+    if (!confirm('Eliminar reserva?')) return
+    try {
+      const res = await fetch(`http://localhost:3001/reservas/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Error en el servidor')
+      }
+      console.log('Reserva eliminada:', data)
+      fetchAll()
+    } catch (e) {
+      console.error(e)
+      alert('Error eliminando reserva')
+    }
   }
+
 
   return (
     <>
@@ -103,23 +116,19 @@ export default function Reservas(){
           <table className="table">
             <thead><tr><th>ID</th><th>Cliente</th><th>Habitación</th><th>Inicio</th><th>Fin</th><th>Monto</th><th>Acciones</th></tr></thead>
             <tbody>
-              {reservas.map(r=>{
-                const habit = habitaciones.find(h=>String(h.id)===String(r.habitacion_id)) || {}
-                const client = clientes.find(c=>String(c.id)===String(r.cliente_id)) || {}
-                return (
-                  <tr key={r.id}>
-                    <td>{r.id}</td>
-                    <td>{client.nombre || r.cliente_id}</td>
-                    <td>{habit.numero || r.habitacion_id}</td>
-                    <td>{r.fecha_inicio}</td>
-                    <td>{r.fecha_fin}</td>
-                    <td>{r.monto_total}</td>
-                    <td>
-                      <button className="btn btn-sm btn-danger" onClick={()=>onDelete(r.id)}>Eliminar</button>
-                    </td>
-                  </tr>
-                )
-              })}
+              {reservas.map(r => (
+              <tr key={r.id}>
+                <td>{r.id}</td>
+                <td>{r.cliente}</td>
+                <td>{r.habitacion} - {r.tipo}</td>
+                <td>{new Date(r.fecha_inicio).toLocaleDateString()}</td>
+                <td>{new Date(r.fecha_fin).toLocaleDateString()}</td>
+                <td>{r.monto_total}</td>
+                <td>
+                  <button className="btn btn-sm btn-danger" onClick={() => onDelete(r.id)}>Eliminar</button>
+                </td>
+              </tr>
+            ))}
             </tbody>
           </table>
         </div>
